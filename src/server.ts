@@ -27,6 +27,7 @@ export class Server {
 
     this.handleRetellLlmWebSocket();
     this.handleRegisterCallAPI();
+    this.handleCreatePhoneCall(); // added for outbound voicecall
 
     this.retellClient = new RetellClient({
       apiKey: process.env.RETELL_API_KEY,
@@ -55,6 +56,7 @@ export class Server {
             audioWebsocketProtocol: AudioWebsocketProtocol.Web,
             audioEncoding: AudioEncoding.S16le,
             sampleRate: 24000,
+            endCallAfterSilenceMs: 60000,
           });
           // Send back the successful response to the client
           res.json(callResponse.callDetail);
@@ -65,6 +67,20 @@ export class Server {
         }
       },
     );
+  }
+
+  // this has been added as a simple outbound procedure
+  handleCreatePhoneCall() {
+    this.app.post("/create-phone-call", async (req: Request, res: Response) => {
+      const { fromNumber, toNumber, agentId } = req.body;
+      try {
+        await this.twilioClient.CreatePhoneCall(fromNumber, toNumber, agentId);
+        res.status(200).json({ message: "Voice call successfully initiated" });
+      } catch (error) {
+        console.error("Error initiating voice call:", error);
+        res.status(500).json({ error: "Failed to initiate voice call" });
+      }
+    });
   }
 
   handleRetellLlmWebSocket() {
